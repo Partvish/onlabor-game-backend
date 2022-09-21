@@ -1,0 +1,31 @@
+version: '3.1'
+
+services:
+  backend:
+    image: onlab-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    networks:
+      - onlab
+  frontend:
+    image: onlab-frontend
+    restart: always
+    networks:
+      - onlab
+  database:
+    image: mysql:oracle
+    command: --default-authentication-plugin=
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD: ""
+      - MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      - MYSQL_DATABSE: "onlab"
+    ports:
+      -"8080:8080"
+    networks:
+      - onlab
+
+networks:
+  onlab: 
+    smt: brdige

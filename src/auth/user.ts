@@ -14,13 +14,13 @@ class User extends BaseEntity{
     @Column()
     password: string
     
-    @Column()
-    @OneToOne("user")
-    player: Player
+    // @Column()
+    // @OneToOne("user")
+    // player: Player
     
-    @Column()
-    @OneToMany("tickets", "user")
-    tickets: UserTicket
+    // @Column()
+    // @OneToMany("tickets", "user")
+    // tickets: UserTicket
 
     User(){}
     

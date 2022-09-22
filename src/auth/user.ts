@@ -1,4 +1,5 @@
-import {BaseEntity, Column, Entity, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm"
+import {BaseEntity, Column, Entity, JoinColumn, OneToMany, OneToOne, PrimaryGeneratedColumn} from "typeorm"
+import Player from "../entities/player"
 
 @Entity()
 class User extends BaseEntity{
@@ -14,9 +15,9 @@ class User extends BaseEntity{
     @Column()
     password: string
     
-    // @Column()
-    // @OneToOne("user")
-    // player: Player
+    @JoinColumn()
+    @OneToOne(()=>Player)
+    player: Player
     
     // @Column()
     // @OneToMany("tickets", "user")

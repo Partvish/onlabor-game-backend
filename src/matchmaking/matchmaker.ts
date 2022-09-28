@@ -1,9 +1,23 @@
+import User from "../auth/user"
+import Player from "../entities/player"
+import UserTicket from "../entities/user-ticket"
+import Room from "./room"
+
 class Matchmaker {
     rooms: Room[] = []
     userTickets: UserTicket[] = []
 
-    addTicket(ticket: UserTicket) {
+    createUserTicket(user: User) {
+        const ticket = new UserTicket()
+        ticket.user = user
+        ticket.status=UserTicketStatus.OPEN
         this.userTickets.push(ticket)
+    }
+
+    closeUserTicket(ticket: UserTicket){
+        ticket.status = UserTicketStatus.CLOSED
+        let index = this.userTickets.findIndex(e => e.id == ticket.id)
+        this.userTickets.splice(index, 1)
     }
 
     createRoom() {
@@ -16,6 +30,12 @@ class Matchmaker {
             return
         let room_index = this.rooms.findIndex((value: Room, index: number) => value.canPlayerJoin())
         let room: Room = (room_index == -1) ? this.rooms[room_index] : this.createRoom()
-        room.addPlayers(this.userTickets)
+        this.userTickets.forEach(ticket=>{
+            if(room.canPlayerJoin()){
+                room.addPlayer(new Player())
+            }
+        })
     }
 }
+
+export default Matchmaker

@@ -33,3 +33,4 @@ services:
 networks:
   onlab:
     driver: bridge
+    external: true

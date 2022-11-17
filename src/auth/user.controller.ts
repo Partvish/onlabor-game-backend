@@ -1,9 +1,11 @@
 import User from "./user";
 import { Request, Response } from "express";
-import {Express} from "express"
+import { Express } from "express"
+import { authenticateToken } from "./token";
+
 
 const setUserController = (app: Express) => {
-    app.get("/user", (req: Request, res: Response) => {
+    app.get("/user", authenticateToken, (req: Request, res: Response) => {
         res.send("<div>user vissza</div>")
     })
 

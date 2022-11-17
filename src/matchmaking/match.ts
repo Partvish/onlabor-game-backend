@@ -1,9 +1,12 @@
-import Player from "./player"
+import Player from "../entities/player"
 
 class Match {
-    players: Player[]
-    table: Table
+    table: number[][]
     scores: number[]
+
+    constructor(){
+        
+    }
 
     onStart(){
     

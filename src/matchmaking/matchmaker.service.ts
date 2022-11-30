@@ -63,10 +63,10 @@ class MatchmakerService {
     }
 
     addPlayerToRoom(room: Room, userId: number, socketId: string){
-        room.addPlayer(new Player())
+        let player_id = room.addPlayer(userId)
         const socket = this.io.sockets.sockets.get(socketId)
         if(socket != null){
-            socket.emit(MatchmakerMessages.MATCH_FOUND, room.port)
+            socket.emit(MatchmakerMessages.MATCH_FOUND, {id: player_id, port: room.port})
             socket.disconnect()
         }
         this.closeUserTicket(socketId)

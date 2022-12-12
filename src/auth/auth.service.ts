@@ -9,7 +9,7 @@ export default class AuthService {
   async loginUser(login: LoginDto) {
     var user = await this.repository.findOneBy({ name: login.name });
     if (user && user.password == login.password)
-      return { token: getToken(user.id, user.name), id: user.id };
+      return { token: getToken(user.id, user.name), id: user.id, name: user.name };
   }
 
   async registerUser(userDto: UserDto) {

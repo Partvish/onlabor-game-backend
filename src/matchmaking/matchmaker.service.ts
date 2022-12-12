@@ -7,6 +7,9 @@ import MatchmakerDto from "./matchmaker.dto";
 import MatchmakerMessages from "./matchmakermessages.enum";
 import { randomInt } from "crypto";
 import findFreePorts from "find-free-ports";
+import tcpPortUsed from "tcp-port-used";
+import { AppDataSource } from "../database";
+import User from "../auth/user";
 
 class MatchmakerService {
   rooms: Room[] = [];
@@ -14,7 +17,7 @@ class MatchmakerService {
   sockets: Map<string, Socket> = new Map<string, Socket>();
   userService: UserService = new UserService();
   io: Server;
-
+  repository = AppDataSource.getRepository(User);
   constructor(server: HttpServer) {
     this.io = new Server(server, {
       cors: {
@@ -65,22 +68,28 @@ class MatchmakerService {
   }
 
   async createRoom() {
-    /*var port = randomInt(50500, 51500);
-    while (!this.rooms.every((e) => e.port != port)) {
+    var port: number = randomInt(50500, 51500);
+    let room;
+    while (
+      !this.rooms.every((e) => e.port != port) &&
+      !tcpPortUsed.check(port, "localhost")
+    ) {
       port = randomInt(50500, 51500);
     }
     this.rooms.push(new Room(port));
-    return this.rooms[this.rooms.length - 1];*/
-    const port = await findFreePorts(1, { startPort: 60000 });
+    return this.rooms[this.rooms.length - 1];
+    /*const port = await findFreePorts(1, { startPort: 60000 });
     let room;
 
-    room = new Room(port[0]);
+    room = new Room(port);
     this.rooms.push(room);
-    return this.rooms[this.rooms.length - 1];
+    return this.rooms[this.rooms.length - 1];*/
   }
 
-  addPlayerToRoom(room: Room, userId: number, socketId: string) {
-    let player_id = room.addPlayer(userId);
+  async addPlayerToRoom(room: Room, userId: number, socketId: string) {
+    let user = await this.repository.findOneBy({ id: userId });
+    let username = user && user.name ? user.name : "";
+    let player_id = room.addPlayer(userId, username);
     const socket = this.sockets.get(socketId);
     if (socket != null) {
       socket.emit(MatchmakerMessages.MATCH_FOUND, {
@@ -100,9 +109,9 @@ class MatchmakerService {
     );
     let room: Room =
       room_index != -1 ? this.rooms[room_index] : await this.createRoom();
-    this.userTickets.forEach((userId, socketId) => {
+    this.userTickets.forEach(async (userId, socketId) => {
       if (room.canPlayerJoin()) {
-        this.addPlayerToRoom(room, userId, socketId);
+        await this.addPlayerToRoom(room, userId, socketId);
       }
     });
   }

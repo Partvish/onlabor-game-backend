@@ -1,4 +1,5 @@
 type PlayerReadyStateDto = {
     name: string,
-    ready: boolean
+    ready: boolean,
+    id: string
 }

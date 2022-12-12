@@ -1,33 +1,37 @@
 import Match from "./match";
 import Player from "../entities/player";
-import io, { Server } from "socket.io";
+import io, { Server, Socket } from "socket.io";
 import { randomUUID } from "crypto";
 import RoomMessages from "./roommessages.enum";
-import { createServer } from "http";
+import { createServer, IncomingMessage, ServerResponse } from "http";
 import express, { Request, Response } from "express";
 import cors from "cors";
+import MatchMessages from "./matchmessages.enum";
 
 class Room {
-  match: Match = new Match([]);
-  maxPlayers: number = 2;
+  match: Match;
+  maxPlayers: number = 4;
   players: Map<string, Player> = new Map<string, Player>();
   playersToJoin: Player[] = [];
   port: number;
   io: Server;
+  sockets: Map<string, Socket> = new Map<string, Socket>();
 
   constructor(port: number) {
     this.port = port;
     console.log(`room created with port ${port}`);
-    const server = express();
-    server.use(cors());
-    server.get("/", (req: Request, res: Response) => {
+    const server = createServer((req: IncomingMessage, res: ServerResponse) => {
+      res.end(`Room with port ${port}`);
+    });
+    //server.use(cors());
+    /* server.get("/", (req: Request, res: Response) => {
       res.send(`Room with port: ${port}`);
-    });
-    server.once()
-    const listener = server.listen(port, () => {
+    });*/
+    //server.once()
+    /*const listener = server.listen(port, () => {
       console.log(`Server listening on port ${port}`);
-    });
-    this.io = new Server(listener, {
+    });*/
+    this.io = new io.Server(server, {
       cors: {
         origin: "*",
         methods: ["GET", "POST"],
@@ -35,41 +39,56 @@ class Room {
     });
 
     this.io.on("connection", (socket) => {
-      console.log("New room created with port: " + this.port);
+      console.log("New player joined on port: " + this.port);
+      this.sockets.set(socket.id, socket);
       socket.on(RoomMessages.REGISTER_PLAYER, (data) => {
-        console.log("my man");
+        console.log("New player registered with id: " + data.id || "");
         if (data.id) {
           let player_index = this.getPlayerIdToRegister(data.id);
           if (player_index != -1) {
             this.onPlayerJoin(player_index, socket.id);
-            socket.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
+            this.io.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
             return;
           }
         } else socket.disconnect();
       });
 
-      socket.on(RoomMessages.READY_PLAYER, (data) => {
+      socket.on(RoomMessages.READY_PLAYER, () => {
         if (!this.players.has(socket.id)) return;
         let player = this.players.get(socket.id);
         if (!player) return;
         player.ready = true;
         this.players.set(socket.id, player);
-        socket.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
+        this.io.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
+        this.checkIfAllPlayersAreReady();
       });
-      socket.on(RoomMessages.UNREADY_PLAYER, (data) => {
+      socket.on(RoomMessages.UNREADY_PLAYER, () => {
         if (!this.players.has(socket.id)) return;
         let player = this.players.get(socket.id);
         if (!player) return;
         player.ready = false;
         this.players.set(socket.id, player);
-        socket.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
+        this.io.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
+      });
+      socket.on(MatchMessages.MOVE, (data) => {
+        console.log("Move received on socket: " + socket.id);
+        if (!data || !data.x || !data.y || !data.id) {
+          console.log("badRequest");
+          return;
+        }
+        this.match.handleMove({ x: data.x - 1, y: data.y - 1 }, data.id);
       });
       socket.on("disconnect", () => {
         this.onPlayerLeave(socket.id);
+        this.io.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
       });
     });
 
     this.io.listen(port);
+
+    this.match = new Match([], (message: string, data: any) => {
+      this.io.emit(message, data);
+    });
   }
 
   getPlayerIdToRegister(player_id: string) {
@@ -82,9 +101,10 @@ class Room {
     this.maxPlayers = maxPlayers;
   }
 
-  addPlayer(userId: number) {
+  addPlayer(userId: number, userName: string) {
     const player = new Player();
     player.id = randomUUID();
+    player.name = userName;
     this.playersToJoin.push(player);
     return player.id;
   }
@@ -101,21 +121,37 @@ class Room {
     if (this.match.running) {
       this.stopMatch();
     }
-
-    // this.players.
+    let player = this.players.get(socket_id);
+    if (player) {
+      this.match.scores.delete(player.id);
+      this.match.onPlayerLeave(player.id);
+    }
+    this.players.delete(socket_id);
+    this.sockets.delete(socket_id);
   }
 
   getRoomState() {
     let roomState: Array<PlayerReadyStateDto> = [];
     this.players.forEach((player: Player, socket_id: string) => {
-      roomState.push({ name: player.name, ready: player.ready });
+      roomState.push({ name: player.name, ready: player.ready, id: player.id });
     });
     console.log(this.players);
     return { players: roomState };
   }
 
+  checkIfAllPlayersAreReady() {
+    if (this.players.size < 2) return;
+    let canStart = true;
+    this.players.forEach((v, k) => {
+      if (!v.ready) canStart = false;
+    });
+    if (canStart) this.startMatch();
+  }
+
   startMatch() {
-    // this.match = new Match(()=>this.players.values())
+    this.match.updatePlayers(Array.from(this.players.values()));
+    this.io.emit(RoomMessages.MATCH_STARTING);
+    this.match.onStart();
   }
 
   restartMatch() {}

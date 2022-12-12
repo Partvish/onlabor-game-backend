@@ -7,8 +7,11 @@ const setAuthController = (app: Express) => {
   app.post("/login", async (req, res) => {
     try {
       const resp = await service.loginUser(req.body);
-      if (!resp || !resp.token || !resp.id) throw Error("Something went wrong");
-      return res.status(200).json({ token: resp.token, id: resp.id });
+      if (!resp || !resp.token || !resp.id || !resp.name)
+        throw Error("Something went wrong");
+      return res
+        .status(200)
+        .json({ token: resp.token, id: resp.id, name: resp.name });
     } catch (error) {
       return res.status(500).send(error);
     }

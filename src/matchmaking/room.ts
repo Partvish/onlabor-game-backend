@@ -86,9 +86,15 @@ class Room {
 
     this.io.listen(port);
 
-    this.match = new Match([], (message: string, data: any) => {
-      this.io.emit(message, data);
-    });
+    this.match = new Match(
+      [],
+      (message: string, data: any) => {
+        this.io.emit(message, data);
+      },
+      (map: Map<string, number>) => {
+        this.givePointsToPlayers(map, this.players);
+      }
+    );
   }
 
   getPlayerIdToRegister(player_id: string) {
@@ -133,7 +139,12 @@ class Room {
   getRoomState() {
     let roomState: Array<PlayerReadyStateDto> = [];
     this.players.forEach((player: Player, socket_id: string) => {
-      roomState.push({ name: player.name, ready: player.ready, id: player.id });
+      roomState.push({
+        name: player.name,
+        ready: player.ready,
+        id: player.id,
+        points: player.points,
+      });
     });
     console.log(this.players);
     return { players: roomState };
@@ -157,11 +168,22 @@ class Room {
   restartMatch() {}
 
   countdown() {
-    //eldobunk minden interakciót
     this.match.running;
   }
 
   stopMatch() {}
+
+  givePointsToPlayers(
+    scores: Map<string, number>,
+    players: Map<string, Player>
+  ) {
+    let array = Array.from(players.values());
+    scores.forEach((points: number, playerId: string) => {
+      let player = array.find((e) => e.id == playerId);
+      if (player) player.points += points;
+    });
+    this.io.emit(RoomMessages.UPDATE_ROOM_STATE, this.getRoomState());
+  }
 }
 
 export default Room;

@@ -15,10 +15,15 @@ class Match {
     { x: 0, y: 9 },
   ];
   notify: (message: string, data: any) => void;
-
-  constructor(players: Player[], notify: (message: string, data: any) => void) {
+  scorePointsToPlayers: (scores: Map<string, number>) => void;
+  constructor(
+    players: Player[],
+    notify: (message: string, data: any) => void,
+    givePointsToPlayers: (scores: Map<string, number>) => void
+  ) {
     this.updatePlayers(players);
     this.notify = notify;
+    this.scorePointsToPlayers = givePointsToPlayers;
   }
 
   updatePlayers(players: Player[]) {
@@ -54,17 +59,17 @@ class Match {
     if (!cellId) {
       console.log("cellid");
       if (!this.hasNeighbouringTile(move, playerId)) {
-        console.log("jézus buzi");
         return;
       }
       this.table[move.x][move.y] = playerId;
+      let points = this.scores.get(playerId);
+      if (points != undefined) this.scores.set(playerId, (points += 1));
       this.notify(MatchMessages.UPDATE_TABLE, { table: this.table });
       return;
     } else if (cellId != playerId) {
       this.handleFight(cellId, playerId);
       return;
     }
-    console.log("my boy");
   }
 
   hasNeighbouringTile(move: Point, _playerId: string): boolean {
@@ -90,9 +95,10 @@ class Match {
     randomInt(0, 3);
   }
   onPlayerLeave(playerId: string) {
-    if(this.scores.size-1 < 2){
-      this.onStop()
-      return
+    if (this.scores.size - 1 < 2) {
+      this.scorePointsToPlayers(this.scores);
+      this.onStop();
+      return;
     }
     for (let i = 0; i < 10; i++) {
       for (let j = 0; j < 10; j++) {

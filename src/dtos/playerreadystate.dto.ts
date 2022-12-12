@@ -1,5 +1,6 @@
 type PlayerReadyStateDto = {
     name: string,
     ready: boolean,
-    id: string
+    id: string,
+    points: number
 }

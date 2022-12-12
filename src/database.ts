@@ -1,4 +1,4 @@
-import { DataSource } from "typeorm"
+import { DataSource } from "typeorm";
 import User from "./auth/user";
 
 export const AppDataSource = new DataSource({
@@ -11,4 +11,4 @@ export const AppDataSource = new DataSource({
   entities: [User],
   synchronize: true,
   logging: false,
-})
+});

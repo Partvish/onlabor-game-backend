@@ -1,11 +1,9 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
-import User from "../auth/user";
 
-@Entity()
 class Player{
-    @PrimaryGeneratedColumn()
-    id: string
     
+    id: string
+    name: string
+    ready: boolean = false
 }
 
 export default Player
